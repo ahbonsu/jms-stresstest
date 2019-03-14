@@ -1,6 +1,8 @@
 package com.avintis.jms.stresstest;
 
 import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 
 import javax.jms.Connection;
@@ -17,6 +19,8 @@ public class JMSProducer implements Runnable
 {
 	private boolean log = false;
 	
+	private JMSTester tester;
+	
 	private String brokerUrl;
 	private int maxMessageSize;
 	private String queue;
@@ -29,10 +33,13 @@ public class JMSProducer implements Runnable
 	private Session session;
 	private javax.jms.MessageProducer producer;
 	
+	private MessageDigest md;
+	
 	private boolean stop = false;
 	
-	public JMSProducer(String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize, boolean log) throws JMSException
+	public JMSProducer(JMSTester tester, String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize, boolean log) throws JMSException, NoSuchAlgorithmException
 	{
+		this.tester = tester;
 		this.brokerUrl = brokerUrl;
 		this.maxMessageSize = maxMessageSize;
 		this.queue = queue;
@@ -40,6 +47,7 @@ public class JMSProducer implements Runnable
 		random = new Random();
 		this.randomSize = randomSize;
 		this.log = log;
+
 		
 		connectionFactory = new ActiveMQConnectionFactory(this.brokerUrl);
 		connection = connectionFactory.createConnection();
@@ -51,12 +59,14 @@ public class JMSProducer implements Runnable
 		
 		producer = session.createProducer(dest);
 		producer.setDeliveryMode(DeliveryMode.PERSISTENT);
+		
+		md = MessageDigest.getInstance("SHA1");
 
 	}
 	
-	public JMSProducer(String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize) throws JMSException
+	public JMSProducer(JMSTester tester, String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize) throws JMSException, NoSuchAlgorithmException
 	{
-		this(brokerUrl, maxMessageSize, queue, frequency, randomSize, false);
+		this(tester, brokerUrl, maxMessageSize, queue, frequency, randomSize, false);
 	}
 	
 	public void run()
@@ -89,6 +99,10 @@ public class JMSProducer implements Runnable
 					System.out.println("Created new Message: " + textMessage.getText());
 				}
 				producer.send(textMessage);
+				
+				tester.addMessageRef(md.digest(textMessage.getText().getBytes()));
+				
+				
 				if(log)
 				{
 					System.out.println("Sleep now for " + frequency + " ms.");

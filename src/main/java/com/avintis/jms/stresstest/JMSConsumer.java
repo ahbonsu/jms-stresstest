@@ -1,5 +1,8 @@
 package com.avintis.jms.stresstest;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
@@ -16,6 +19,8 @@ public class JMSConsumer implements Runnable
 	
 	private boolean log = false;
 	
+	private JMSTester tester;
+	
 	private String brokerUrl;
 	private String queue;
 
@@ -24,8 +29,11 @@ public class JMSConsumer implements Runnable
 	private Session session;
 	private MessageConsumer messageConsumer;
 	
-	public JMSConsumer(String brokerUrl, String queue) throws JMSException
+	private MessageDigest md;
+	
+	public JMSConsumer(JMSTester tester, String brokerUrl, String queue) throws JMSException, NoSuchAlgorithmException
 	{
+		this.tester = tester;
 		this.brokerUrl = brokerUrl;
 		this.queue = queue;
 		
@@ -39,11 +47,13 @@ public class JMSConsumer implements Runnable
 		Destination dest = session.createQueue(this.queue);
 		
 		messageConsumer = session.createConsumer(dest);
+		
+		md = MessageDigest.getInstance("SHA1");
 	}
 	
-	public JMSConsumer(String brokerUrl, String queue, boolean log) throws JMSException
+	public JMSConsumer(JMSTester tester, String brokerUrl, String queue, boolean log) throws JMSException, NoSuchAlgorithmException
 	{
-		this(brokerUrl, queue);
+		this(tester, brokerUrl, queue);
 		this.log = log;
 	}
 	
@@ -59,6 +69,9 @@ public class JMSConsumer implements Runnable
 				{
 					System.out.println("Received Message");
 				}
+				
+				tester.removeMessageRef(md.digest(msg.getText().getBytes()));
+				
 			} catch (JMSException e)
 			{
 				// TODO Auto-generated catch block
