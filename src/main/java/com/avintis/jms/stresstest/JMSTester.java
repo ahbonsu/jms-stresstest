@@ -1,64 +1,134 @@
 package com.avintis.jms.stresstest;
 
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import javax.jms.JMSException;
 
 public class JMSTester
 {
+	private static String brokerURL;
+	private static String queueName;
+	private static int maxProducer;
+	private static int maxConsumer;
+	private static int productionFrequency;
+	private static int maxMessageSize;
+	private static int queueViewerTime;
+	private static boolean log;
+	private static boolean useRandomSize;
+	private static boolean benchmark;
+	private static int benchmarkTime;
 	
-	private static final int MAX_PRODUCER = 1;
-	private static final int MAX_CONSUMER = 1;
-	private static final int PRODUCTION_FREQUENCY = 1000;
-	private static final int MAX_MESSAGE_SIZE = 1000*1024;
+	private static ArrayList<JMSProducer> producers = new ArrayList<JMSProducer>();
+	private static ArrayList<JMSConsumer> consumers = new ArrayList<JMSConsumer>();
 	
-	private static ArrayList<Thread> producers = new ArrayList<Thread>();
-	private static ArrayList<Thread> consumers = new ArrayList<Thread>();
+	private List<String> messageRefs = Collections.synchronizedList(new ArrayList<String>());
 	
-	private List<byte[]> messageRefs = Collections.synchronizedList(new ArrayList<byte[]>());
+	private int totalMessages = 0;
 
-	public static void main(String[] args) throws JMSException, InterruptedException, NoSuchAlgorithmException
+	public static void main(String[] args) throws JMSException, InterruptedException, NoSuchAlgorithmException, IOException
 	{
+		//read properties and apply
+			
+		Properties props = new Properties();
+		props.load(ClassLoader.getSystemClassLoader().getResourceAsStream("config.properties"));
+		
+		brokerURL = props.getProperty("brokerURL");
+		queueName = props.getProperty("queueName");
+		maxProducer = Integer.valueOf(props.getProperty("maxProducer"));
+		maxConsumer = Integer.valueOf(props.getProperty("maxConsumer"));
+		productionFrequency = Integer.valueOf(props.getProperty("productionFrequency"));
+		maxMessageSize = Integer.valueOf(props.getProperty("maxMessageSize"));
+		queueViewerTime = Integer.valueOf(props.getProperty("queueViewerTime"));
+		benchmark = Boolean.valueOf(props.getProperty("benchmark"));
+		log = Boolean.valueOf(props.getProperty("log"));
+		useRandomSize = Boolean.valueOf(props.getProperty("useRandomSize"));
+		benchmarkTime = Integer.valueOf(props.getProperty("benchmarkTime"));
+
 		JMSTester tester = new JMSTester();
 		tester.test();
+
 	}
 	
 	public void test() throws NoSuchAlgorithmException, JMSException, InterruptedException
 	{
-		String brokerUrl = "tcp://localhost:61616";
-		String queue = "testQueue";
+		String brokerUrl = brokerURL;
 
 		//create producers
-		for(int i = 0; i < MAX_PRODUCER; i++)
+		for(int i = 0; i < maxProducer; i++)
 		{
-			Thread t = new Thread(new JMSProducer(this, brokerUrl, MAX_MESSAGE_SIZE, queue, PRODUCTION_FREQUENCY, true, false));
-			Thread.sleep(PRODUCTION_FREQUENCY / MAX_PRODUCER);
+			JMSProducer prod = new JMSProducer(this, brokerUrl, maxMessageSize, queueName, productionFrequency, useRandomSize, log);
+			Thread t = new Thread(prod);
+			//do not start all at the same time
+			Thread.sleep(productionFrequency / maxProducer);
 			t.start();
-			producers.add(t);
+			producers.add(prod);
 		}
 		//create consumers
-		for(int i = 0; i < MAX_CONSUMER; i++)
+		for(int i = 0; i < maxConsumer; i++)
 		{
-			Thread t = new Thread(new JMSConsumer(this, brokerUrl, queue, false));
+			JMSConsumer cons = new JMSConsumer(this, brokerUrl, queueName, log);
+			Thread t = new Thread(cons);
 			t.start();
-			consumers.add(t);
+			consumers.add(cons);
+		}
+		
+		Thread t = new Thread(new QueueViewer(this, queueViewerTime));
+		t.start();
+		
+		if(benchmark)
+		{
+			Thread.sleep(benchmarkTime * 1000);
+			
+			System.out.println("STOPPING!!");
+			
+			for(JMSProducer prod : producers)
+			{
+				prod.stop();
+			}
+			
+			System.out.println("ALL PRODUCERS STOPPED!");
+			int messagesAfterStopped = getCurrentMessagesInQueue();
+			long stopped = System.currentTimeMillis();
+			while(getCurrentMessagesInQueue() > 0)
+			{
+				Thread.sleep(100);
+			}
+			
+			long finished = System.currentTimeMillis();
+			
+			System.out.println("Took " + (finished -  stopped) + " ms to process the last " + messagesAfterStopped + " of total messages: " + totalMessages);
+			
+			System.exit(0);
 		}
 	}
 	
 	public synchronized void addMessageRef(byte[] ref)
 	{
-		System.out.println("ADD");
-		messageRefs.add(ref);
+		String str = Base64.getEncoder().encodeToString(ref);
+		messageRefs.add(str);
+		totalMessages++;
 		
 	}
 	
 	public synchronized void removeMessageRef(byte[] ref)
 	{
-		System.out.println("Remove");
-		messageRefs.remove(ref);
+		String str = Base64.getEncoder().encodeToString(ref);
+		int index = messageRefs.indexOf(str);
+		if(index != -1)
+		{
+			messageRefs.remove(index);
+		}
+	}
+	
+	public int getCurrentMessagesInQueue()
+	{
+		return messageRefs.size();
 	}
 
 }

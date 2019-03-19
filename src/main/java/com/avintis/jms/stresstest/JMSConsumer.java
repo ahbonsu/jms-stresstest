@@ -37,7 +37,7 @@ public class JMSConsumer implements Runnable
 		this.brokerUrl = brokerUrl;
 		this.queue = queue;
 		
-		connectionFactory = new ActiveMQConnectionFactory(this.brokerUrl);
+		connectionFactory = new ActiveMQConnectionFactory("admin", "admin", this.brokerUrl);
 		connection = connectionFactory.createConnection();
 		
 		connection.start();

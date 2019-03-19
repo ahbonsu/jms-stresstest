@@ -49,7 +49,7 @@ public class JMSProducer implements Runnable
 		this.log = log;
 
 		
-		connectionFactory = new ActiveMQConnectionFactory(this.brokerUrl);
+		connectionFactory = new ActiveMQConnectionFactory("admin", "admin", this.brokerUrl);
 		connection = connectionFactory.createConnection();
 		
 		connection.start();
@@ -98,9 +98,9 @@ public class JMSProducer implements Runnable
 				{
 					System.out.println("Created new Message: " + textMessage.getText());
 				}
-				producer.send(textMessage);
-				
 				tester.addMessageRef(md.digest(textMessage.getText().getBytes()));
+				
+				producer.send(textMessage);
 				
 				
 				if(log)
@@ -118,6 +118,7 @@ public class JMSProducer implements Runnable
 			{
 				if(stop)
 				{
+					System.out.println("THREAD STOPPED!!");
 					try
 					{
 						connection.close();
