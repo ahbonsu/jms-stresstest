@@ -27,6 +27,8 @@ public class JMSProducer implements Runnable
 	private long frequency;
 	private Random random;
 	private boolean randomSize;
+	private String username;
+	private String password;
 	
 	private ConnectionFactory connectionFactory;
 	private Connection connection;
@@ -37,7 +39,7 @@ public class JMSProducer implements Runnable
 	
 	private boolean stop = false;
 	
-	public JMSProducer(JMSTester tester, String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize, boolean log) throws JMSException, NoSuchAlgorithmException
+	public JMSProducer(JMSTester tester, String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize, boolean log, String username, String password) throws JMSException, NoSuchAlgorithmException
 	{
 		this.tester = tester;
 		this.brokerUrl = brokerUrl;
@@ -47,9 +49,11 @@ public class JMSProducer implements Runnable
 		random = new Random();
 		this.randomSize = randomSize;
 		this.log = log;
+		this.username = username;
+		this.password = password;
 
 		
-		connectionFactory = new ActiveMQConnectionFactory("admin", "admin", this.brokerUrl);
+		connectionFactory = new ActiveMQConnectionFactory(username, password, this.brokerUrl);
 		connection = connectionFactory.createConnection();
 		
 		connection.start();
@@ -64,9 +68,9 @@ public class JMSProducer implements Runnable
 
 	}
 	
-	public JMSProducer(JMSTester tester, String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize) throws JMSException, NoSuchAlgorithmException
+	public JMSProducer(JMSTester tester, String brokerUrl, int maxMessageSize, String queue, long frequency, boolean randomSize, String username, String password) throws JMSException, NoSuchAlgorithmException
 	{
-		this(tester, brokerUrl, maxMessageSize, queue, frequency, randomSize, false);
+		this(tester, brokerUrl, maxMessageSize, queue, frequency, randomSize, false, username, password);
 	}
 	
 	public void run()

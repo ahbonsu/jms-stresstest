@@ -29,15 +29,20 @@ public class JMSConsumer implements Runnable
 	private Session session;
 	private MessageConsumer messageConsumer;
 	
+	private String username; 
+	private String password;
+	
 	private MessageDigest md;
 	
-	public JMSConsumer(JMSTester tester, String brokerUrl, String queue) throws JMSException, NoSuchAlgorithmException
+	public JMSConsumer(JMSTester tester, String brokerUrl, String queue, String username, String password) throws JMSException, NoSuchAlgorithmException
 	{
 		this.tester = tester;
 		this.brokerUrl = brokerUrl;
 		this.queue = queue;
+		this.username = username;
+		this.password = password;
 		
-		connectionFactory = new ActiveMQConnectionFactory("admin", "admin", this.brokerUrl);
+		connectionFactory = new ActiveMQConnectionFactory(username, password, this.brokerUrl);
 		connection = connectionFactory.createConnection();
 		
 		connection.start();
@@ -51,9 +56,9 @@ public class JMSConsumer implements Runnable
 		md = MessageDigest.getInstance("SHA1");
 	}
 	
-	public JMSConsumer(JMSTester tester, String brokerUrl, String queue, boolean log) throws JMSException, NoSuchAlgorithmException
+	public JMSConsumer(JMSTester tester, String brokerUrl, String queue, boolean log, String username, String password) throws JMSException, NoSuchAlgorithmException
 	{
-		this(tester, brokerUrl, queue);
+		this(tester, brokerUrl, queue, username, password);
 		this.log = log;
 	}
 	

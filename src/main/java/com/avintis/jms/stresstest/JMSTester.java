@@ -25,6 +25,8 @@ public class JMSTester
 	private static boolean useRandomSize;
 	private static boolean benchmark;
 	private static int benchmarkTime;
+	private static String username;
+	private static String password;
 	
 	private static ArrayList<JMSProducer> producers = new ArrayList<JMSProducer>();
 	private static ArrayList<JMSConsumer> consumers = new ArrayList<JMSConsumer>();
@@ -47,10 +49,6 @@ public class JMSTester
 		{
 			props.load(ClassLoader.getSystemClassLoader().getResourceAsStream("config.properties"));
 		}
-
-			
-		
-		
 		
 		brokerURL = props.getProperty("brokerURL");
 		queueName = props.getProperty("queueName");
@@ -63,6 +61,8 @@ public class JMSTester
 		log = Boolean.valueOf(props.getProperty("log"));
 		useRandomSize = Boolean.valueOf(props.getProperty("useRandomSize"));
 		benchmarkTime = Integer.valueOf(props.getProperty("benchmarkTime"));
+		username = props.getProperty("username");
+		password = props.getProperty("password");
 
 		JMSTester tester = new JMSTester();
 		tester.test();
@@ -76,7 +76,7 @@ public class JMSTester
 		//create producers
 		for(int i = 0; i < maxProducer; i++)
 		{
-			JMSProducer prod = new JMSProducer(this, brokerUrl, maxMessageSize, queueName, productionFrequency, useRandomSize, log);
+			JMSProducer prod = new JMSProducer(this, brokerUrl, maxMessageSize, queueName, productionFrequency, useRandomSize, log, username, password);
 			Thread t = new Thread(prod);
 			//do not start all at the same time
 			Thread.sleep(productionFrequency / maxProducer);
@@ -86,7 +86,7 @@ public class JMSTester
 		//create consumers
 		for(int i = 0; i < maxConsumer; i++)
 		{
-			JMSConsumer cons = new JMSConsumer(this, brokerUrl, queueName, log);
+			JMSConsumer cons = new JMSConsumer(this, brokerUrl, queueName, log, username, password);
 			Thread t = new Thread(cons);
 			t.start();
 			consumers.add(cons);
