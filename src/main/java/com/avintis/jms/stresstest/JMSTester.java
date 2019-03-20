@@ -1,5 +1,7 @@
 package com.avintis.jms.stresstest;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -33,10 +35,22 @@ public class JMSTester
 
 	public static void main(String[] args) throws JMSException, InterruptedException, NoSuchAlgorithmException, IOException
 	{
-		//read properties and apply
-			
 		Properties props = new Properties();
-		props.load(ClassLoader.getSystemClassLoader().getResourceAsStream("config.properties"));
+		
+		if (args.length == 1)
+		{
+			File conf = new File(args[0]);
+			FileReader fr = new FileReader(conf);
+			props.load(fr);
+		}
+		else
+		{
+			props.load(ClassLoader.getSystemClassLoader().getResourceAsStream("config.properties"));
+		}
+
+			
+		
+		
 		
 		brokerURL = props.getProperty("brokerURL");
 		queueName = props.getProperty("queueName");
